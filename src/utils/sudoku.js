@@ -82,10 +82,13 @@ class Sudoku {
       }
     }
 
+    // Get all possible options for a cell,
     for (let i in this.allCells) {
       if (this.allCells[i] === null) this.allCells[i] = new Cell();
-      this.solveCell(i);
+      this.getCellPossibilities(i);
     }
+
+
 
     return this.allCells;
   }
@@ -128,7 +131,7 @@ class Sudoku {
     return passedRelCellValidation;
   }
 
-  solveCell = (index) => {
+  getCellPossibilities = (index) => {
     if (typeof index !== 'number') index = parseInt(index, 10);
     for (let i = 0; i < this.valueOptions.length; i++) {
       if (this.checkRelCellValidation(index, this.valueOptions[i])) {
