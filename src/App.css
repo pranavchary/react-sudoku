@@ -3,14 +3,41 @@
 }
 
 .sudoku {
-  width: 360px;
-  height: 360px;
-  display: inline-block;
+  width: 427px;
+  height: 427px;
+  display: flex;
+  flex-wrap: wrap;
   margin: 10px;
+  border: 4px solid black;
 }
 
 .cell {
-  width: 40px;
-  height: 40px;
-  display: inline-block;
+  flex-basis: 45px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 45px;
+  border: 1px solid grey;
+}
+
+.cell:nth-child(3n):not(:nth-child(9n)) {
+  border-right: 2px solid black;
+}
+
+.cell:nth-child(3n + 1):not(:nth-child(9n + 1)) {
+  border-left: 2px solid black;
+}
+
+.cell:nth-child(n+19):nth-child(-n+27),
+.cell:nth-child(n+46):nth-child(-n+54) {
+  border-bottom: 2px solid black;
+}
+
+.cell:nth-child(n+28):nth-child(-n+36),
+.cell:nth-child(n+55):nth-child(-n+63) {
+  border-top: 2px solid black;
+}
+
+.hidden-solved {
+  color: grey;
 }
