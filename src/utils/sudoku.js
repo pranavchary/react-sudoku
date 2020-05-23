@@ -29,11 +29,6 @@ const colGroups = [
   [8, 17, 26, 35, 44, 53, 62, 71, 80]
 ];
 
-const diagGroups = [
-  [0, 10, 20, 30, 40, 50, 60, 70, 80],
-  [8, 16, 24, 32, 40, 48, 56, 64, 72]
-];
-
 const squareGroups = [
   [0, 1, 2, 9, 10, 11, 18, 19, 20],
   [3, 4, 5, 12, 13, 14, 21, 22, 23],
@@ -48,27 +43,54 @@ const squareGroups = [
 
 const sudoku = () => {
   let allCells = new Array(81).fill(null);
-  console.log(allCells);
 
-  // Pick a digit from 1 - 9 to assign to a cell
-  let cellValue = Math.floor(Math.random() * 9 + 1);
-  // Pick a random cell from 0 - 80 to assign the value to
-  let cellNumber = Math.floor(Math.random() * 81);
-  // If the cell is already assigned, generate a new random cell number
-  while (allCells[cellNumber] != null) {
-    cellNumber = Math.floor(Math.random() * 81);
+  let undefinedCellValueError = false;
+  for (let i = 0; i < 45; i++) {
+    if (undefinedCellValueError) break;
+    let cellIsFilled = false;
+    let valueOptions = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+    while (!cellIsFilled) {
+      const optionIndex = Math.floor(Math.random() * valueOptions.length);
+      // Pick a digit from 1 - 9 to assign to a cell
+      const cellValue = valueOptions[optionIndex];
+      if (cellValue === undefined) {
+        console.log('cell value is undefined!!!');
+        undefinedCellValueError = true;
+        break;
+      }
+
+      // Determined the square, row, and column the cell belongs to
+      const squareCells = squareGroups.find(s => s.includes(i));
+      const rowCells = rowGroups.find(r => r.includes(i));
+      const colCells = colGroups.find(c => c.includes(i));
+
+      // Create a new array of all cells related to the cell we are trying to add to (square, rows, columns)
+      let relatedCells = [...new Set(squareCells.concat(rowCells, colCells))];
+      // Remove the cell we are trying to add, since we already know it's empty
+      relatedCells.splice(relatedCells.indexOf(i), 1);
+
+      let relatedCellsValidated = true
+      for (let i = 0; i < relatedCells.length; i++) {
+        if (allCells[relatedCells[i]] === cellValue) {
+          relatedCellsValidated = false;
+          break;
+        }
+      }
+
+      if (relatedCellsValidated) {
+        console.log('value', cellValue, 'can be placed in cell', i);
+        allCells[i] = cellValue;
+        cellIsFilled = true;
+      } else {
+        console.log('cannot place', cellValue, 'in', i, '- creating new value');
+        valueOptions.splice(optionIndex, 1);
+      }
+    }
   }
 
-  console.log(cellNumber);
-  // Determined the square, row, and column the cell belongs to
-  let squareCells = squareGroups.find(s => s.includes(cellNumber));
-  let rowCells = rowGroups.find(r => r.includes(cellNumber));
-  let colCells = colGroups.find(c => c.includes(cellNumber));
+  console.log(allCells);
 
-  let filteredCells = [...new Set(squareCells.concat(rowCells, colCells))]
-  console.log(filteredCells);
-
-  // For now, let's start with looping through cells
+  return Promise.resolve(allCells);
 }
 
 export default sudoku;
