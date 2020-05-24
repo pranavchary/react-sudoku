@@ -52,60 +52,50 @@ class Sudoku {
     // Let's add some givens randomly based on difficulty
     switch (this.difficulty) {
       case 1:
-        givenCount = 27;
+        givenCount = 36;
         break;
       case 2:
-        givenCount = 22;
+        givenCount = 33;
         break;
       case 3:
-        givenCount = 18;
+        givenCount = 30;
         break;
       case 4:
-        givenCount = 14;
+        givenCount = 27;
         break;
       case 5:
-        givenCount = 10;
+        givenCount = 24;
         break;
       default:
         break;
     }
 
     if (givenCount === undefined) return new Error('No difficulty level specified');
-    for (let i = 0; i < givenCount; i++) {
-      let randomIndex = Math.floor(Math.random() * 81);
-      while (this.allCells[randomIndex] !== null) {
-        randomIndex = Math.floor(Math.random() * 81);
-      }
-      let cellIsFilled = false;
-      while (!cellIsFilled) {
-        cellIsFilled = this.digitPlacement(randomIndex, true);
-      }
-    }
 
-    // Get all possible options for a cell,
-    for (let i in this.allCells) {
-      if (this.allCells[i] === null) this.allCells[i] = new Cell();
-      this.getCellPossibilities(i);
-    }
+    // Testing this backtracking method
+    this.fillBoard();
 
-
+    this.allCells.forEach((cell, i) => {
+      if (cell === null) this.allCells[i] = new Cell();
+    });
 
     return this.allCells;
   }
 
   checkRelCellValidation = (index, value) => {
-    // Determined the square, row, and column the cell belongs to
-    const blocks = this.blocks.find(s => s.includes(index));
-    const bands = this.bands.find(r => r.includes(index));
-    const stacks = this.stacks.find(c => c.includes(index));
+    // Determined the block, band, and stack the cell belongs to
+    const block = this.blocks.find(s => s.includes(index));
+    const band = this.bands.find(r => r.includes(index));
+    const stack = this.stacks.find(c => c.includes(index));
 
     // Create a new array of all indexs related to the index we are trying to add to (square, rows, columns)
-    let relatedCells = [...new Set(blocks.concat(bands, stacks))];
+    let relatedCells = [...new Set(block.concat(band, stack))];
     // Remove the index we are trying to add, since we already know it's empty
     relatedCells.splice(relatedCells.indexOf(index), 1);
 
     for (let i = 0; i < relatedCells.length; i++) {
-      if (this.allCells[relatedCells[i]] !== null && this.allCells[relatedCells[i]].value === value) {
+      const currentCell = this.allCells[relatedCells[i]];
+      if (currentCell !== null && currentCell.value === value) {
         return false;
       }
     }
@@ -113,36 +103,86 @@ class Sudoku {
     return true;
   }
 
-  digitPlacement = (index, given, value) => {
-    if (value === undefined) value = this.valueOptions[Math.floor(Math.random() * 9)];
-    // If it's still undefined, something went wrong. Return false immediately.
-    if (value === undefined) return false;
+  fillBoard = () => {
+    const fillOrder = [0, 1, 3, 2, 4, 6, 5, 7, 8];
+    let fillIndex = 0;
+    let stepsToBacktrack = 1;
+    let backtrackCounter = 0;
 
-    let passedRelCellValidation = this.checkRelCellValidation(index, value);
+    const backtrack = () => {
+      if (backtrackCounter === 2500) /*throw new Error('2,500 backtracks reached.');*/ return false;
+        fillIndex = fillIndex - stepsToBacktrack;
+        if (fillIndex < 0) fillIndex = 0;
+        stepsToBacktrack++;
+        if (stepsToBacktrack > fillOrder.length - 1 || fillIndex === 0) stepsToBacktrack = 1;
+        backtrackCounter++;
 
-    if (passedRelCellValidation) {
-      const cell = new Cell();
-      cell.value = value;
-      cell.given = given;
-      cell.display = true;
-      this.allCells[index] = cell;
+        return true;
     }
 
-    return passedRelCellValidation;
+    while (fillIndex < this.blocks.length) {
+      console.log('trying to fill block', fillOrder[fillIndex]);
+      if (!this.populateSudokuBlock(fillOrder[fillIndex]) && !backtrack()) break;
+      else fillIndex++;
+    }
+
+    if (fillIndex === 9) console.log('ALL POPULATED THANK GOD.');
   }
 
-  getCellPossibilities = (index) => {
-    if (typeof index !== 'number') index = parseInt(index, 10);
-    for (let i = 0; i < this.valueOptions.length; i++) {
-      if (this.checkRelCellValidation(index, this.valueOptions[i])) {
-        this.allCells[index].pencil.push(this.valueOptions[i]);
+  populateSudokuBlock = (blockIndex = 0) => {
+    let block = this.blocks[blockIndex].slice(0, this.blocks[blockIndex].length);
+    let blockValues = this.valueOptions.slice(0, this.valueOptions.length);
+    while (block.length > 0) {
+      const randomValue = blockValues[Math.floor(Math.random() * blockValues.length)];
+      if (randomValue === undefined) {
+        console.log('UNDEFINED VALUE FOUND. RESET BLOCK', blockIndex);
+         return false;
+       }
+      if (this.checkRelCellValidation(block[0], randomValue)) {
+        this.allCells[block[0]] = new Cell();
+        this.allCells[block[0]].value = randomValue;
+        block.splice(0, 1);
+        blockValues = this.valueOptions.slice(0, this.valueOptions.length);
+      } else {
+        blockValues.splice(blockValues.indexOf(randomValue), 1);
       }
     }
 
-    if (this.allCells[index].pencil.length === 1) {
-      this.allCells[index].value = this.allCells[index].pencil[0];
-      this.allCells[index].display = true;
+    return true;
+  }
+
+  pencilSudokuBlock = (blockIndex) => {
+    let block = this.blocks[blockIndex].slice(0, this.blocks[blockIndex].length);
+    // Pencil in all possible values for the cell
+    while (block.length > 0) {
+      let pencilArray = [];
+      for (let i = 0; i < this.valueOptions.length; i++) {
+        const value = this.valueOptions[i];
+        this.allCells[block[0]] = new Cell();
+        if (this.checkRelCellValidation(block[0], value)) {
+          pencilArray.push(value);
+        }
+      }
+      this.allCells[block[0]].pencil = pencilArray;
+      block.splice(0, 1);
     }
+
+    // If any pencil arrays are empty, this means there is an invalid placement somewhere. We need to backtrack.
+    // Otherwise Assign values to any cells that have only one possible value
+    for (let i = 0; i < this.blocks[blockIndex].length; i++) {
+      let idx = this.blocks[blockIndex][i];
+      console.log('check out block', idx);
+      console.log(this.allCells[idx].pencil)
+      if (this.allCells[idx].pencil.length === 0) {
+        console.log('IMPOSSIBLE COMBO FOUND. RESET.');
+        return false;
+      } else if (this.allCells[idx].pencil.length === 1) {
+        this.allCells[idx].value = this.allCells[idx].pencil[0];
+        this.allCells[idx].pencil = [];
+      }
+    }
+
+    return true;
   }
 
 }
